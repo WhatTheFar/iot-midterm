@@ -66,53 +66,24 @@ void usDelay(uint32_t uSec);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
-// speed of sound in cm/usec
-const float speedOfSound = 0.0343 / 2;
-float distance1; //outside Ultrasonic
-float distance2; //inside  Ultrasonic
+int isIR1Detected, isIR2Detected;
 char uartBuf[100];
-
 int numberOfPeople = 0;
 
-float distanceFromUltrasonic(GPIO_TypeDef* trigPort, uint16_t trigPin,
-		GPIO_TypeDef* echoPort, uint16_t echoPin) {
-	//Set TRIG to LOW for few uSec
-	uint32_t numTicks;
-	HAL_GPIO_WritePin(trigPort, trigPin, GPIO_PIN_RESET);
-	usDelay(3);
-
-	//*** START Ultrasonic measure routine ***//
-
-	//1. Output 10 usec TRIG
-	HAL_GPIO_WritePin(trigPort, trigPin, GPIO_PIN_SET);
-	usDelay(10);
-	HAL_GPIO_WritePin(trigPort, trigPin, GPIO_PIN_RESET);
-
-	//2. Wait for ECHO pin rising edge
-	while (HAL_GPIO_ReadPin(echoPort, echoPin) == GPIO_PIN_RESET)
-		;
-
-	//3. Start measuring ECHO pulse width in usec
-	numTicks = 0;
-	while (HAL_GPIO_ReadPin(echoPort, echoPin) == GPIO_PIN_SET) {
-		numTicks++;
-		usDelay(2); //2.8usec
-	};
-
-	//4. Estimate distance in cm
-	float distance = (numTicks + 0.0f) * 2.8 * speedOfSound;
-
-	return distance;
+int IR1readPin() {
+	if (HAL_GPIO_ReadPin(IR1_GPIO_Port, IR1_Pin) == GPIO_PIN_SET) {
+		return 0; // not detected
+	} else {
+		return 1; // detected
+	}
 }
 
-float distanceFromOutsideUltrasonic() {
-	return distanceFromUltrasonic(TRIG_GPIO_Port, TRIG_Pin, ECHO_GPIO_Port,
-	ECHO_Pin);
-}
-
-float distanceFromInsideUltrasonic() {
-	return distanceFromUltrasonic(TRIG2_GPIO_Port, TRIG2_Pin, ECHO2_GPIO_Port,
-	ECHO2_Pin);
+int IR2readPin() {
+	if (HAL_GPIO_ReadPin(IR2_GPIO_Port, IR2_Pin) == GPIO_PIN_SET) {
+		return 0; // not detected
+	} else {
+		return 1; // detected
+	}
 }
 
 /* USER CODE END 0 */
@@ -171,15 +142,15 @@ int main(void) {
 		/* USER CODE BEGIN 3 */
 
 		//1. Get distance
-		distance1 = distanceFromOutsideUltrasonic();
-		distance2 = distanceFromInsideUltrasonic();
+		isIR1Detected = IR1readPin();
+		isIR2Detected = IR2readPin();
 
 		int newState = 0;
-		if (distance1 <= 10.0f && distance2 > 10.0f) {
+		if (isIR1Detected == 1 && isIR2Detected == 0) {
 			newState = 1;
-		} else if (distance1 <= 10.0f && distance2 <= 10.0f) {
+		} else if (isIR1Detected == 1 && isIR2Detected == 1) {
 			newState = 2;
-		} else if (distance1 > 10.0f && distance2 <= 10.0f) {
+		} else if (isIR1Detected == 0 && isIR2Detected == 1) {
 			newState = 3;
 		} else {
 			newState = 0;
@@ -233,8 +204,8 @@ int main(void) {
 
 		//7. Print to UART terminal for debugging
 		sprintf(uartBuf,
-				"Distance1 = %.1f cm. , Distance2 = %.1f cm. , State = %d , new state = %d, People = %d\r\n",
-				distance1, distance2, state, newState, numberOfPeople);
+				"IR1 = %d  , IR2 = %d , State = %d , new state = %d, People = %d\r\n",
+				isIR1Detected, isIR2Detected, state, newState, numberOfPeople);
 		HAL_UART_Transmit(&huart2, (uint8_t *) uartBuf, strlen(uartBuf), 100);
 
 		HAL_Delay(10);
