@@ -181,7 +181,9 @@ int main(void) {
 					if (state == 3) {
 						numberOfPeople += 1;
 					} else if (state == 1) {
-						numberOfPeople -= 1;
+						if (numberOfPeople > 0) {
+							numberOfPeople -= 1;
+						}
 					}
 				}
 				state = newState;
