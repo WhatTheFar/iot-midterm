@@ -136,6 +136,8 @@ int main(void)
 	 */
 	int state = 0;
 	int tempState = 0;
+	int timer = 0;
+	int tempNumberOfPeople = 0;
 
 	while (1) {
 
@@ -224,12 +226,23 @@ int main(void)
 			HAL_GPIO_WritePin(GPIOA, GPIO_PIN_6, GPIO_PIN_SET);
 			HAL_GPIO_WritePin(GPIOA, GPIO_PIN_7, GPIO_PIN_SET);
 			HAL_GPIO_WritePin(GPIOA, GPIO_PIN_10, GPIO_PIN_RESET);
+			timer = 0;
 		} else if (numberOfPeople > 4) {
 			HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, GPIO_PIN_SET);
 			HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_SET);
 			HAL_GPIO_WritePin(GPIOA, GPIO_PIN_6, GPIO_PIN_SET);
 			HAL_GPIO_WritePin(GPIOA, GPIO_PIN_7, GPIO_PIN_SET);
 			HAL_GPIO_WritePin(GPIOA, GPIO_PIN_10, GPIO_PIN_SET);
+			if (timer < 1 || tempNumberOfPeople < numberOfPeople) {
+				tempNumberOfPeople = numberOfPeople;
+				HAL_GPIO_WritePin(Buzzer_GPIO_Port, Buzzer_Pin, GPIO_PIN_SET);
+				timer++;
+				HAL_Delay(1000);
+			}
+			if (timer >= 1) {
+				HAL_GPIO_WritePin(Buzzer_GPIO_Port, Buzzer_Pin, GPIO_PIN_RESET);
+			}
+
 		}
 
 		//7. Print to UART terminal for debugging
