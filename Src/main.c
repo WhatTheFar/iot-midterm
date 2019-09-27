@@ -78,6 +78,8 @@ void usDelay(uint32_t uSec);
 #define MAXIMUM			(DEBOUNCE_TIME * SAMPLE_FREQUENCY)
 #define DELAY			(1000 / SAMPLE_FREQUENCY)
 
+#define MAXIMUM_PEOPLE		5
+
 /* These are the variables used */
 unsigned int input1; /* 0 or 1 depending on the input signal */
 unsigned int integrator1; /* Will range from 0 to the specified MAXIMUM */
@@ -237,7 +239,9 @@ int main(void) {
 			if (newState == 0) {
 				if (state == 3 && firstState == 1) {
 					numberOfPeople += 1;
-					alertDetection();
+					if (numberOfPeople <= MAXIMUM_PEOPLE) {
+						alertDetection();
+					}
 				} else if (state == 1 && firstState == 3) {
 					if (numberOfPeople > 0) {
 						numberOfPeople -= 1;
@@ -282,17 +286,18 @@ int main(void) {
 			HAL_GPIO_WritePin(GPIOA, GPIO_PIN_6, GPIO_PIN_SET);
 			HAL_GPIO_WritePin(GPIOA, GPIO_PIN_7, GPIO_PIN_SET);
 			HAL_GPIO_WritePin(GPIOA, GPIO_PIN_10, GPIO_PIN_RESET);
-		} else if (numberOfPeople > 4) {
+		} else if (numberOfPeople >= 5) {
 			HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, GPIO_PIN_SET);
 			HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_SET);
 			HAL_GPIO_WritePin(GPIOA, GPIO_PIN_6, GPIO_PIN_SET);
 			HAL_GPIO_WritePin(GPIOA, GPIO_PIN_7, GPIO_PIN_SET);
 			HAL_GPIO_WritePin(GPIOA, GPIO_PIN_10, GPIO_PIN_SET);
-			if (tempNumberOfPeople < numberOfPeople) {
-				HAL_GPIO_WritePin(Buzzer_GPIO_Port, Buzzer_Pin, GPIO_PIN_SET);
-				HAL_Delay(1000);
-				HAL_GPIO_WritePin(Buzzer_GPIO_Port, Buzzer_Pin, GPIO_PIN_RESET);
-			}
+		}
+		if (numberOfPeople > MAXIMUM_PEOPLE
+				&& tempNumberOfPeople < numberOfPeople) {
+			HAL_GPIO_WritePin(Buzzer_GPIO_Port, Buzzer_Pin, GPIO_PIN_SET);
+			HAL_Delay(1000);
+			HAL_GPIO_WritePin(Buzzer_GPIO_Port, Buzzer_Pin, GPIO_PIN_RESET);
 		}
 		tempNumberOfPeople = numberOfPeople;
 
