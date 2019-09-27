@@ -66,9 +66,26 @@ void usDelay(uint32_t uSec);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
-int isIR1Detected, isIR2Detected;
-char uartBuf[100];
-int numberOfPeople = 0;
+// http://www.kennethkuhn.com/electronics/debounce.c
+/* The following parameters tune the algorithm to fit the particular
+ application.  The example numbers are for a case where a computer samples a
+ mechanical contact 10 times a second and a half-second integration time is
+ used to remove bounce.  Note: DEBOUNCE_TIME is in seconds and SAMPLE_FREQUENCY
+ is in Hertz */
+
+#define DEBOUNCE_TIME		0.02
+#define SAMPLE_FREQUENCY	200
+#define MAXIMUM			(DEBOUNCE_TIME * SAMPLE_FREQUENCY)
+#define DELAY			(1000 / SAMPLE_FREQUENCY)
+
+/* These are the variables used */
+unsigned int input1; /* 0 or 1 depending on the input signal */
+unsigned int integrator1; /* Will range from 0 to the specified MAXIMUM */
+unsigned int output1; /* Cleaned-up version of the input signal */
+
+unsigned int input2; /* 0 or 1 depending on the input signal */
+unsigned int integrator2; /* Will range from 0 to the specified MAXIMUM */
+unsigned int output2; /* Cleaned-up version of the input signal */
 
 int IR1readPin() {
 	if (HAL_GPIO_ReadPin(IR1_GPIO_Port, IR1_Pin) == GPIO_PIN_SET) {
@@ -84,6 +101,32 @@ int IR2readPin() {
 	} else {
 		return 1; // detected
 	}
+}
+
+unsigned int calcIntegrator(unsigned int input, unsigned int integrator) {
+	/* Step 1: Update the integrator based on the input signal.  Note that the
+	 integrator follows the input, decreasing or increasing towards the limits as
+	 determined by the input state (0 or 1). */
+	if (input == 0) {
+		if (integrator > 0)
+			integrator -= 1;
+	} else if (integrator < MAXIMUM) {
+		integrator += 1;
+	}
+	return integrator;
+}
+
+unsigned int calcOutput(unsigned int integrator, unsigned int output) {
+	/* Step 2: Update the output state based on the integrator.  Note that the
+	 output will only change states if the integrator has reached a limit, either
+	 0 or MAXIMUM. */
+	if (integrator == 0) {
+		output = 0;
+	} else if (integrator >= MAXIMUM) {
+		output = 1;
+		// integrator = MAXIMUM; /* defensive code if integrator got corrupted */
+	}
+	return output;
 }
 
 /* USER CODE END 0 */
@@ -123,10 +166,8 @@ int main(void)
 
   /* USER CODE END 2 */
 
-  /* Infinite loop */
-  /* USER CODE BEGIN WHILE */
-	int dup[4];
-	memset(dup, 0, sizeof dup);
+	/* Infinite loop */
+	/* USER CODE BEGIN WHILE */
 	/*
 	 * State
 	 * 0 -> no object
@@ -135,18 +176,33 @@ int main(void)
 	 * 3 -> second sensor
 	 */
 	int state = 0;
-	int tempState = 0;
+	int firstState = 0;
+
+	int numberOfPeople = 0;
 	int tempNumberOfPeople = 0;
+
+	int isIR1Detected, isIR2Detected;
+
+	char uartBuf[100];
 
 	while (1) {
 
-    /* USER CODE END WHILE */
+		/* USER CODE END WHILE */
 
-    /* USER CODE BEGIN 3 */
+		/* USER CODE BEGIN 3 */
 
 		//1. Get distance
-		isIR1Detected = IR1readPin();
-		isIR2Detected = IR2readPin();
+		input1 = IR1readPin();
+		input2 = IR2readPin();
+
+		integrator1 = calcIntegrator(input1, integrator1);
+		integrator2 = calcIntegrator(input2, integrator2);
+
+		output1 = calcOutput(integrator1, output1);
+		output2 = calcOutput(integrator2, output2);
+
+		isIR1Detected = output1;
+		isIR2Detected = output2;
 
 		int newState = 0;
 		if (isIR1Detected == 1 && isIR2Detected == 0) {
@@ -160,38 +216,22 @@ int main(void)
 		}
 
 		if (newState != state) {
-//			if (newState == tempState) {
-//				dup[state] += 1;
-//			} else {
-//				for (int i = 0; i < 4; i++) {
-//					dup[i] = 0;
-//				}
-//			}
-
-			if (newState != tempState) {
-				for (int i = 0; i < 4; i++) {
-					dup[i] = 0;
-				}
+			if (state == 0) {
+				firstState = newState;
 			}
-			dup[state] += 1;
 
-			if (dup[state] >= 10) {
-				for (int i = 0; i < 4; i++) {
-					dup[i] = 0;
-				}
-
-				if (newState == 0) {
-					if (state == 3) {
-						numberOfPeople += 1;
-					} else if (state == 1) {
-						if (numberOfPeople > 0) {
-							numberOfPeople -= 1;
-						}
+			if (newState == 0) {
+				if (state == 3 && firstState == 1) {
+					numberOfPeople += 1;
+				} else if (state == 1 && firstState == 3) {
+					if (numberOfPeople > 0) {
+						numberOfPeople -= 1;
 					}
+				} else if (state == 2 || firstState == 2) {
 				}
-				state = newState;
+				firstState = 0;
 			}
-			tempState = newState;
+			state = newState;
 		}
 
 		//6. Control LED
@@ -240,12 +280,16 @@ int main(void)
 		tempNumberOfPeople = numberOfPeople;
 
 		//7. Print to UART terminal for debugging
+//		sprintf(uartBuf,
+//				"IR1 = %d  , IR2 = %d , State = %d , new state = %d, People = %d\r\n",
+//				isIR1Detected, isIR2Detected, state, newState, numberOfPeople);
 		sprintf(uartBuf,
-				"IR1 = %d  , IR2 = %d , State = %d , new state = %d, People = %d\r\n",
-				isIR1Detected, isIR2Detected, state, newState, numberOfPeople);
+				"I1 = %d , I2 = %d , IR1 = %d  , IR2 = %d , State = %d , new state = %d, People = %d\r\n",
+				integrator1, integrator2, isIR1Detected, isIR2Detected, state,
+				newState, numberOfPeople);
 		HAL_UART_Transmit(&huart2, (uint8_t *) uartBuf, strlen(uartBuf), 100);
 
-		HAL_Delay(10);
+		HAL_Delay(DELAY);
 	}
   /* USER CODE END 3 */
 }
