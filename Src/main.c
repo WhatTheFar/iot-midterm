@@ -129,6 +129,22 @@ unsigned int calcOutput(unsigned int integrator, unsigned int output) {
 	return output;
 }
 
+void alertError() {
+	for (int i = 0; i < 5; ++i) {
+		HAL_GPIO_WritePin(Buzzer_GPIO_Port, Buzzer_Pin, GPIO_PIN_SET);
+		HAL_Delay(100);
+		HAL_GPIO_WritePin(Buzzer_GPIO_Port, Buzzer_Pin, GPIO_PIN_RESET);
+		HAL_Delay(100);
+	}
+}
+
+void alertDetection() {
+	HAL_GPIO_WritePin(Buzzer_GPIO_Port, Buzzer_Pin, GPIO_PIN_SET);
+	HAL_Delay(75);
+	HAL_GPIO_WritePin(Buzzer_GPIO_Port, Buzzer_Pin, GPIO_PIN_RESET);
+	HAL_Delay(75);
+}
+
 /* USER CODE END 0 */
 
 /**
@@ -223,11 +239,14 @@ int main(void)
 			if (newState == 0) {
 				if (state == 3 && firstState == 1) {
 					numberOfPeople += 1;
+					alertDetection();
 				} else if (state == 1 && firstState == 3) {
 					if (numberOfPeople > 0) {
 						numberOfPeople -= 1;
 					}
+					alertDetection();
 				} else if (state == 2 || firstState == 2) {
+					alertError();
 				}
 				firstState = 0;
 			}
