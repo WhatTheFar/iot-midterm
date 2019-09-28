@@ -131,6 +131,18 @@ unsigned int calcOutput(unsigned int integrator, unsigned int output) {
 	return output;
 }
 
+int calcState(int isIR1Detected, int isIR1Detected) {
+	if (isIR1Detected == 1 && isIR2Detected == 0) {
+		return 1;
+	} else if (isIR1Detected == 1 && isIR2Detected == 1) {
+		return 2;
+	} else if (isIR1Detected == 0 && isIR2Detected == 1) {
+		return 3;
+	} else {
+		return 0;
+	}
+}
+
 void alertError() {
 	for (int i = 0; i < 5; ++i) {
 		HAL_GPIO_WritePin(Buzzer_GPIO_Port, Buzzer_Pin, GPIO_PIN_SET);
@@ -220,16 +232,7 @@ int main(void) {
 		isIR1Detected = output1;
 		isIR2Detected = output2;
 
-		int newState = 0;
-		if (isIR1Detected == 1 && isIR2Detected == 0) {
-			newState = 1;
-		} else if (isIR1Detected == 1 && isIR2Detected == 1) {
-			newState = 2;
-		} else if (isIR1Detected == 0 && isIR2Detected == 1) {
-			newState = 3;
-		} else {
-			newState = 0;
-		}
+		int newState = calcState(isIR1Detected, isIR2Detected);
 
 		if (newState != state) {
 			if (state == 0) {
