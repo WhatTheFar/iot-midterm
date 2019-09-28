@@ -89,7 +89,7 @@ unsigned int input2; /* 0 or 1 depending on the input signal */
 unsigned int integrator2; /* Will range from 0 to the specified MAXIMUM */
 unsigned int output2; /* Cleaned-up version of the input signal */
 
-int IR1readPin() {
+int IR1ReadPin() {
 	if (HAL_GPIO_ReadPin(IR1_GPIO_Port, IR1_Pin) == GPIO_PIN_SET) {
 		return 0; // not detected
 	} else {
@@ -97,7 +97,7 @@ int IR1readPin() {
 	}
 }
 
-int IR2readPin() {
+int IR2ReadPin() {
 	if (HAL_GPIO_ReadPin(IR2_GPIO_Port, IR2_Pin) == GPIO_PIN_SET) {
 		return 0; // not detected
 	} else {
@@ -186,10 +186,10 @@ int main(void) {
 	/* USER CODE BEGIN WHILE */
 	/*
 	 * State
-	 * 0 -> no object
-	 * 1 -> first sensor
-	 * 2 -> both sensor
-	 * 3 -> second sensor
+	 * 0 -> no object detected
+	 * 1 -> first sensor detect an object
+	 * 2 -> both sensor detect an object
+	 * 3 -> second sensor detect an object
 	 */
 	int state = 0;
 	int firstState = 0;
@@ -208,8 +208,8 @@ int main(void) {
 		/* USER CODE BEGIN 3 */
 
 		//1. Get distance
-		input1 = IR1readPin();
-		input2 = IR2readPin();
+		input1 = IR1ReadPin();
+		input2 = IR2ReadPin();
 
 		integrator1 = calcIntegrator(input1, integrator1);
 		integrator2 = calcIntegrator(input2, integrator2);
