@@ -209,8 +209,6 @@ int main(void) {
 	int numberOfPeople = 0;
 	int tempNumberOfPeople = 0;
 
-	int isIR1Detected, isIR2Detected;
-
 	char uartBuf[100];
 
 	while (1) {
@@ -229,29 +227,27 @@ int main(void) {
 		output1 = calcOutput(integrator1, output1);
 		output2 = calcOutput(integrator2, output2);
 
-		isIR1Detected = output1;
-		isIR2Detected = output2;
+		int isIR1Detected = output1;
+		int isIR2Detected = output2;
 
 		int newState = calcState(isIR1Detected, isIR2Detected);
 
 		if (newState != state) {
 			if (state == 0) {
 				firstState = newState;
-			}
-
-			if (newState == 0) {
-				if (state == 3 && firstState == 1) {
-					numberOfPeople += 1;
-					if (numberOfPeople <= MAXIMUM_PEOPLE) {
-						alertDetection();
-					}
-				} else if (state == 1 && firstState == 3) {
+			} else if (newState == 0) {
+				if (state == 1 && firstState == 3) {
 					if (numberOfPeople > 0) {
 						numberOfPeople -= 1;
 					}
 					alertDetection();
 				} else if (state == 2 || firstState == 2) {
 					alertError();
+				} else if (state == 3 && firstState == 1) {
+					numberOfPeople += 1;
+					if (numberOfPeople <= MAXIMUM_PEOPLE) {
+						alertDetection();
+					}
 				}
 				firstState = 0;
 			}
